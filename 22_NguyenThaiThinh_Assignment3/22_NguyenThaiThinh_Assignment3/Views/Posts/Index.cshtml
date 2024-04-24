@@ -1,0 +1,209 @@
+﻿@model IEnumerable<_22_NguyenThaiThinh_Assignment3.Models.Post>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Post Management</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<a href="/Posts/SortByDateDescending">Sort Posts</a>
+<div id="searchContainer">
+    <input type="text" id="idInput" placeholder="Search by ID...">
+    <input type="text" id="titleInput" placeholder="Search by Title...">
+    <input type="text" id="descriptionInput" placeholder="Search by Description...">
+    <button onclick="searchPost()">Search</button>
+    
+</div>
+<table class="table" id="postTable">
+    <thead>
+        <tr>
+            <th>
+                ID
+            </th>
+            <th>
+                Created Date
+            </th>
+            <th>
+                Updated Date
+            </th>
+            <th>
+                Title
+            </th>
+            <th>
+                Content
+            </th>
+            <th>
+                Publish Status
+            </th>
+            <th>
+                Author
+            </th>
+            <th>
+                Category
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.PostId)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.CreatedDate)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.UpdatedDate)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Title)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Content)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.PublishStatus)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Author.Fullname)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Category.CategoryName)
+                </td>
+                <td>
+                    @if(Context.Session.GetString("Type")=="1")
+                    {
+                        <a asp-action="Edit" asp-route-id="@item.PostId">Edit </a>
+                        <a asp-action = "Details" asp-route-id = "@item.PostId">Details </a> 
+                        <a asp-action = "Delete" asp-route-id = "@item.PostId">Delete </a>
+                    }else{
+                        <a asp-action="Details" asp-route-id="@item.PostId">Details </a>
+                    }
+                    
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+@if (Context.Session.GetString("Type") == "1")
+{
+    <div id="postStatisticsContainer">
+        <h2>Post Statistics</h2>
+        @*     <div>
+    <label for="startDate">Start Date:</label>
+    <input type="date" id="startDate" name="startDate">
+    </div>
+    <div>
+    <label for="endDate">End Date:</label>
+    <input type="date" id="endDate" name="endDate">
+    </div>
+    <button onclick="generateReport()">
+    Generate Report
+    </button> *@
+        <form id="reportForm" method="post" action="/Posts/GenReport">
+            <div>
+                <label for="startDate">Start Date:</label>
+                <input type="date" id="startDate" name="startDate">
+            </div>
+            <div>
+                <label for="endDate">End Date:</label>
+                <input type="date" id="endDate" name="endDate">
+            </div>
+            <button type="submit">Generate Report</button>
+        </form>
+        <!-- Bảng report statistics sẽ được hiển thị ở đây -->
+        <div id="postStatisticsContainer">
+            <h2>Post Statistics</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Created Date</th>
+                        <th>Title</th>
+                        <th>Content</th>
+                        <th>Publish Status</th>
+                        <th>Author</th>
+                        <th>Category</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (ViewBag.Posts != null)
+                    {
+                        @foreach (var post in ViewBag.Posts)
+                        {
+                            <tr>
+                                <td>@post.PostId</td>
+                                <td>@post.CreatedDate</td>
+                                <td>@post.Title</td>
+                                <td>@post.Content</td>
+                                <td>@post.PublishStatus</td>
+                                <td>@post.Author.Fullname</td>
+                                <td>@post.Category.CategoryName</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+            <h3>Most Used Category</h3>
+            @if (ViewBag.MostUsedCategory != null)
+            {
+                <p>Category: @ViewBag.MostUsedCategory.Category</p>
+                <p>Number of Posts: @ViewBag.MostUsedCategory.Count</p>
+            }
+        </div>
+    </div>
+}
+<script src="~/js/site.js"></script>
+<script src="~/js/signalr/dist/browser/signalr.js"></script>
+<script>
+    function searchPost() {
+        var idSearchTerm = $('#idInput').val().toLowerCase();
+        var titleSearchTerm = $('#titleInput').val().toLowerCase();
+        var descriptionSearchTerm = $('#descriptionInput').val().toLowerCase();
+
+        // Lặp qua từng dòng trong bảng
+        $('#postTable tbody tr').each(function () {
+            var postId = $(this).find('td:eq(0)').text().toLowerCase(); 
+            var title = $(this).find('td:eq(3)').text().toLowerCase(); 
+            var description = $(this).find('td:eq(4)').text().toLowerCase(); 
+
+            // Kiểm tra xem từ khóa tìm kiếm có tồn tại trong bất kỳ cột nào không
+            var idMatch = idSearchTerm === '' || postId.includes(idSearchTerm);
+            var titleMatch = titleSearchTerm === '' || title.includes(titleSearchTerm);
+            var descriptionMatch = descriptionSearchTerm === '' || description.includes(descriptionSearchTerm);
+
+            
+            if (!(idMatch && titleMatch && descriptionMatch)) {
+                $(this).hide(); 
+            } else {
+                $(this).show(); 
+            }
+        });
+
+    }
+    function generateReport() {
+        var startDate = document.getElementById('startDate').value;
+        var endDate = document.getElementById('endDate').value;
+
+        // Gửi yêu cầu AJAX đến controller để tạo báo cáo
+        $.ajax({
+            url: '/Posts/GenReport',
+            method: 'GET',
+            data: { startDate: startDate, endDate: endDate },
+            success: function () {
+                // Xử lý kết quả trả về từ controller
+                // Ví dụ: hiển thị báo cáo trong một div có id là 'reportContainer'
+            },
+            error: function (xhr, status, error) {
+                // Xử lý lỗi nếu có
+                console.error(xhr.responseText);
+            }
+        });
+    }
+
+</script>
